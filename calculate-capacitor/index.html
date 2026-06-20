@@ -1,1 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capacitor Calculator for Single Phase Motor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; }
+        input, label, .font-mono, #hasil { font-family: 'JetBrains Mono', monospace !important; }
+        .panasonic-blue { background-color: #0055a4; }
+        .panasonic-blue-text { color: #3b82f6; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
 
+    <div class="w-full max-w-md bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 p-8">
+        <h1 class="text-2xl font-extrabold text-white mb-2"><i class="fas fa-bolt text-blue-400 mr-2"></i>Capacitor Calculator</h1>
+        <p class="text-sm text-gray-400 mb-6 font-mono">Estimate based on Starting & Running Current.</p>
+
+        <div class="bg-gray-900 p-6 rounded-xl mb-8 border border-gray-700 flex justify-center">
+            <svg width="240" height="70" viewBox="0 0 240 70" xmlns="http://www.w3.org/2000/svg">
+                <text x="0" y="40" fill="#e2e8f0" font-family="JetBrains Mono" font-size="20" font-style="italic">C = </text>
+                <line x1="40" y1="33" x2="230" y2="33" stroke="#e2e8f0" stroke-width="2" />
+                <text x="50" y="25" fill="#e2e8f0" font-family="JetBrains Mono" font-size="16" font-style="italic">((Iₛ + 2 × Iᵣ) / 3) × 10⁶</text>
+                <text x="80" y="58" fill="#e2e8f0" font-family="JetBrains Mono" font-size="16" font-style="italic">2πfV</text>
+            </svg>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-300">Starting Current (Iₛ) in Amps:</label>
+                <input type="number" id="iStart" step="0.01" class="w-full mt-2 p-3 bg-gray-900 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="eg. 1.20">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-300">Running Current (Iᵣ) in Amps:</label>
+                <input type="number" id="iRun" step="0.01" class="w-full mt-2 p-3 bg-gray-900 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="eg. 0.75">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-300">Freq (Hz):</label>
+                    <input type="number" id="freq" value="50" class="w-full mt-2 p-3 bg-gray-900 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-300">Voltage (V):</label>
+                    <input type="number" id="volt" value="220" class="w-full mt-2 p-3 bg-gray-900 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="hitungKapasitor()" class="flex-1 panasonic-blue text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-all">
+                    <i class="fas fa-calculator mr-2"></i>Calculate
+                </button>
+                <button onclick="clearFields()" class="px-6 bg-gray-700 text-gray-300 font-bold py-3 rounded-lg hover:bg-gray-600 transition-all">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="hasilContainer" class="mt-8 p-5 bg-gray-900 rounded-xl border border-gray-700 hidden">
+            <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Estimated Result:</h2>
+            <p id="hasil" class="text-4xl font-bold panasonic-blue-text mt-2"></p>
+        </div>
+    </div>
+
+    <script>
+        function hitungKapasitor() {
+            const is = parseFloat(document.getElementById('iStart').value);
+            const ir = parseFloat(document.getElementById('iRun').value);
+            const f = parseFloat(document.getElementById('freq').value);
+            const v = parseFloat(document.getElementById('volt').value);
+
+            if (isNaN(is) || isNaN(ir) || isNaN(f) || isNaN(v)) return;
+
+            const iAvg = (is + (2 * ir)) / 3;
+            const c = (iAvg * 1000000) / (2 * Math.PI * f * v);
+
+            document.getElementById('hasil').innerText = c.toFixed(2) + " μF";
+            document.getElementById('hasilContainer').classList.remove('hidden');
+        }
+
+        function clearFields() {
+            document.getElementById('iStart').value = '';
+            document.getElementById('iRun').value = '';
+            // Reset ke default standar (opsional)
+            // document.getElementById('freq').value = '50';
+            // document.getElementById('volt').value = '220';
+            document.getElementById('hasilContainer').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
