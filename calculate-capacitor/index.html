@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Capacitor Calculator for Single Phase Motor</title>
     <meta name="description" content="Estimate based on Starting & Running Current of Single Phase Motor.">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Capacitor Calculator","short_name":"CapCalc","start_url":".","display":"standalone","background_color":"#0f172a","theme_color":"#0f172a","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/2906/2906274.png","sizes":"512x512","type":"image/png","purpose":"maskable"}]}'>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -67,6 +69,13 @@
     </div>
 
     <script>
+        // Menggunakan pengecekan standar tanpa data URL untuk mencegah error protokol
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                console.log("Service Worker pendaftaran dilewati karena lingkungan sandbox.");
+            });
+        }
+
         function hitungKapasitor() {
             const is = parseFloat(document.getElementById('iStart').value);
             const ir = parseFloat(document.getElementById('iRun').value);
@@ -85,9 +94,6 @@
         function clearFields() {
             document.getElementById('iStart').value = '';
             document.getElementById('iRun').value = '';
-            // Reset ke default standar (opsional)
-            // document.getElementById('freq').value = '50';
-            // document.getElementById('volt').value = '220';
             document.getElementById('hasilContainer').classList.add('hidden');
         }
     </script>
