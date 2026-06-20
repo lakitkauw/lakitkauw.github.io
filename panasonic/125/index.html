@@ -1,1 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>125W Water Pump Rewinding Technical Dashboard</title>
+    <!-- Google Fonts & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-dark: #030712;
+            --bg-card: #0b1329;
+            --bg-card-hover: #111c3a;
+            
+            /* Running Winding Step Colors */
+            --primary-1: #38bdf8; /* Step 1 (Slots 1-10 / 13-22) - Light Blue */
+            --primary-2: #818cf8; /* Step 2 (Slots 2-11 / 14-23) - Indigo */
+            --primary-3: #f472b6; /* Step 3 (Slots 3-12 / 15-24) - Pink/Magenta */
+            
+            /* Starting Winding Step Colors */
+            --secondary-1: #34d399; /* Step 1 (Slots 7-16 / 19-4) - Emerald Green */
+            --secondary-2: #fbbf24; /* Step 2 (Slots 8-17 / 20-5) - Amber/Yellow */
+            --secondary-3: #f97316; /* Step 3 (Slots 9-18 / 21-6) - Orange */
+            
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent: #fbbf24;
+            --border-color: #1f2937;
+            --danger: #f87171;
+            
+            /* Inactive Elements */
+            --inactive-element: #1f2937;
+            --inactive-slot: #374151;
+        }
 
+        /* Print Override */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .no-print, .diag-tab, .tab-btn {
+                display: none !important;
+            }
+            .dashboard-grid {
+                display: block !important;
+            }
+            .card {
+                background: white !important;
+                border: 1px solid #ccc !important;
+                color: black !important;
+                page-break-inside: avoid;
+                margin-bottom: 20px;
+                box-shadow: none !important;
+            }
+            .val, .slot-highlight, .conn-val, h1, h2, h3, th, td {
+                color: black !important;
+            }
+            svg {
+                filter: invert(1);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #374151;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: space-between;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 16px;
+        }
+
+        @media (min-width: 768px) {
+            header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
+        .header-title-area {
+            margin-bottom: 12px;
+            @media (min-width: 768px) { margin-bottom: 0; }
+        }
+
+        .brand-badge {
+            display: inline-block;
+            background: linear-gradient(90deg, #1e3a8a, #030712);
+            border: 1px solid var(--primary-1);
+            color: var(--primary-1);
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            border-color: var(--primary-1);
+            background-color: var(--bg-card-hover);
+            color: var(--primary-1);
+        }
+
+        /* MAIN RESPONSIVE GRID Layout */
+        .dashboard-grid {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 350px 1fr;
+            }
+        }
+
+        /* CARD COMPONENT */
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* CORE SPECS CARD (SIDEBAR ON DESKTOP) */
+        .specs-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .specs-grid-mini {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .spec-item {
+            background-color: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .spec-item:hover {
+            border-color: rgba(56, 189, 248, 0.2);
+            background-color: rgba(56, 189, 248, 0.03);
+        }
+
+        .spec-item i {
+            font-size: 16px;
+            color: var(--primary-1);
+            margin-bottom: 4px;
+        }
+
+        .spec-item .val {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffffff;
+            display: block;
+        }
+
+        .spec-item .lbl {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* INTERACTIVE SCHEMATICS COMPONENT */
+        .main-workspace {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .visualizer-card {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            align-items: center;
+        }
+
+        @media (min-width: 768px) {
+            .visualizer-card {
+                grid-template-columns: 1.2fr 1fr;
+            }
+        }
+
+        .diagram-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #020617;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .stator-svg {
+            width: 100%;
+            max-width: 280px;
+            height: auto;
+            transform: rotate(0deg);
+            transition: transform 0.5s ease;
+        }
+
+        /* SVG Inner Styling */
+        .stator-ring-out { fill: none; stroke: #1f2937; stroke-width: 1.5; }
+        .stator-ring-in { fill: none; stroke: #374151; stroke-width: 1; stroke-dasharray: 2,2; }
+        
+        .slot-node {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .slot-node.running-slot {
+            fill: #0ea5e9; /* Running slots are always Blue */
+        }
+
+        .slot-node.starting-slot {
+            fill: #10b981; /* Starting slots are always Green */
+        }
+
+        .slot-node:hover {
+            r: 4;
+            fill: #ffffff !important;
+        }
+
+        .coil-arc {
+            fill: none;
+            stroke-linecap: round;
+            opacity: 0.1; /* Inactive element fading level */
+            transition: all 0.3s ease;
+            stroke-width: 1.5;
+            stroke: var(--inactive-element);
+            cursor: pointer;
+        }
+
+        /* Map step CSS variables to visualizer classes */
+        .rc-step-0 { --step-color: var(--primary-1); }
+        .rc-step-1 { --step-color: var(--primary-2); }
+        .rc-step-2 { --step-color: var(--primary-3); }
+
+        .sc-step-0 { --step-color: var(--secondary-1); }
+        .sc-step-1 { --step-color: var(--secondary-2); }
+        .sc-step-2 { --step-color: var(--secondary-3); }
+
+        /* ALL VIEW STATE */
+        .all-view .coil-arc.running-coil { stroke: var(--step-color); opacity: 0.7; }
+        .all-view .coil-arc.starting-coil { stroke: var(--step-color); opacity: 0.7; }
+        .all-view .slot-node { opacity: 1; }
+
+        /* RUNNING VIEW STATE - Glow Effect Removed */
+        .run-view .coil-arc.running-coil { stroke: var(--step-color); opacity: 1; stroke-width: 2.5; }
+        .run-view .slot-node.running-slot { opacity: 1; r: 3.2; }
+        .run-view .coil-arc.starting-coil { opacity: 0.05; stroke: var(--inactive-element); }
+        .run-view .slot-node.starting-slot { opacity: 0.20; } /* Remain green but faded */
+
+        /* STARTING VIEW STATE - Glow Effect Removed */
+        .start-view .coil-arc.starting-coil { stroke: var(--step-color); opacity: 1; stroke-width: 2.5; }
+        .start-view .slot-node.starting-slot { opacity: 1; r: 3.2; }
+        .start-view .coil-arc.running-coil { opacity: 0.05; stroke: var(--inactive-element); }
+        .start-view .slot-node.running-slot { opacity: 0.20; } /* Remain blue but faded */
+
+        /* FOCUSED/HOVER MODE STATE */
+        .stator-svg.focused-mode .coil-arc:not(.temp-highlight-arc) {
+            opacity: 0.02 !important;
+            filter: none !important;
+        }
+        .stator-svg.focused-mode .slot-node:not(.temp-highlight-slot) {
+            opacity: 0.20 !important; /* Keep slot holes transparent running-blue / starting-green */
+        }
+
+        /* Dynamic Slot Hover Highlighting - Glow Effect Removed */
+        .stator-svg .coil-arc.temp-highlight-arc {
+            stroke: var(--step-color) !important;
+            opacity: 1 !important;
+            stroke-width: 3.5 !important;
+        }
+        .stator-svg .slot-node.temp-highlight-slot {
+            r: 4.5 !important;
+            opacity: 1 !important;
+        }
+
+        /* DIAGRAM CONTROLS */
+        .diagram-controls {
+            width: 100%;
+        }
+
+        .tab-box {
+            display: flex;
+            background: #111827;
+            padding: 4px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background-color: #3b82f6;
+            color: #ffffff;
+        }
+
+        .tab-btn.active.starting-btn {
+            background-color: #10b981;
+            color: #ffffff;
+        }
+
+        .tab-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            background-color: rgba(255,255,255,0.01);
+            padding: 10px;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-1);
+        }
+
+        /* WINDING DATA BLOCKS (FLEXIBLE ROW GRID) */
+        .winding-tables-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .winding-tables-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .winding-block {
+            border-top: 4px solid var(--primary-1);
+        }
+        .winding-block.starting-block {
+            border-top-color: var(--secondary-1);
+        }
+
+        .block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .block-title {
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .running-title { color: var(--primary-1); }
+        .starting-title { color: var(--secondary-1); }
+
+        .wire-pill {
+            background-color: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+
+        .meta-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+            background-color: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .meta-strip .lbl {
+            font-size: 8px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .meta-strip .val {
+            font-size: 11px;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        /* DATA TABLES */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        th {
+            text-align: left;
+            color: var(--text-muted);
+            font-size: 9px;
+            text-transform: uppercase;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 6px 4px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+            transition: background-color 0.2s ease;
+        }
+
+        tr.table-row-interactive:hover td {
+            background-color: rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+        }
+
+        .slot-highlight {
+            color: #ffffff;
+            font-weight: 700;
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 1px 4px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* INTERNAL WIRING SCHEME */
+        .connection-card-full {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .schematic-diagram {
+            background: #020617;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .wire-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.01);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            min-width: 100px;
+        }
+
+        .wire-color-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .color-black { background-color: #000; border-color: #555; }
+        .color-red { background-color: #ef4444; }
+        .color-yellow { background-color: #eab308; }
+
+        .wire-node .node-lbl {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .wire-node .node-sub {
+            font-size: 8px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .wire-connector-line {
+            height: 2px;
+            background: #1f2937;
+            flex-grow: 1;
+            max-width: 40px;
+            position: relative;
+            @media (max-width: 600px) { display: none; }
+        }
+
+        /* DETAILED STEP-BY-STEP LEGEND */
+        .step-legend-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 12px;
+            width: 100%;
+        }
+
+        @media (min-width: 576px) {
+            .step-legend-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .legend-group {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .legend-group-title {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .legend-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+            margin-bottom: 4px;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .legend-row:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .legend-row.active-focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            font-weight: bold;
+        }
+
+        .legend-row.active-focus.run-focus-0 { border-color: var(--primary-1); color: var(--primary-1); }
+        .legend-row.active-focus.run-focus-1 { border-color: var(--primary-2); color: var(--primary-2); }
+        .legend-row.active-focus.run-focus-2 { border-color: var(--primary-3); color: var(--primary-3); }
+        .legend-row.active-focus.start-focus-0 { border-color: var(--secondary-1); color: var(--secondary-1); }
+        .legend-row.active-focus.start-focus-1 { border-color: var(--secondary-2); color: var(--secondary-2); }
+        .legend-row.active-focus.start-focus-2 { border-color: var(--secondary-3); color: var(--secondary-3); }
+
+        .color-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        /* TECHNICAL TOOLBOX (INTEGRATED ESTIMATOR) */
+        .toolbox-card {
+            border-left: 4px solid var(--accent);
+        }
+
+        .toolbox-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        @media (min-width: 768px) {
+            .toolbox-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .tool-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .tool-input-group label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .tool-input-group input, .tool-input-group select {
+            background-color: #111827;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: #ffffff;
+            padding: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        .tool-results {
+            background-color: rgba(245, 158, 11, 0.05);
+            border: 1px solid rgba(245, 158, 11, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            text-align: center;
+        }
+
+        .result-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .result-lbl {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .result-val {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        footer {
+            width: 100%;
+            max-width: 1200px;
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- MAIN HEADER -->
+    <header>
+        <div class="header-title-area">
+            <div class="brand-badge">National • Sanyo • Panasonic</div>
+            <h1>125W WATER PUMP REWINDING TECHNICAL DASHBOARD</h1>
+            <div class="subtitle">Standard Single-Phase 2-Pole Core (Core Depth: 3.6 cm)</div>
+        </div>
+        <div class="action-buttons no-print">
+            <button class="btn" onclick="toggleStatorSpin()"><i class="fa-solid fa-rotate"></i> Rotate Visualizer</button>
+            <button class="btn" onclick="window.print()"><i class="fa-solid fa-print"></i> Export / Print Data</button>
+        </div>
+    </header>
+
+    <!-- MAIN DASHBOARD GRID -->
+    <main class="dashboard-grid">
+        
+        <!-- SIDEBAR PANEL (MOTOR SPECIFICATIONS) -->
+        <section class="specs-sidebar">
+            <div class="card">
+                <h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; color: var(--primary-1);">
+                    <i class="fa-solid fa-microchip"></i> Stator Core Dimensions
+                </h3>
+                <div class="specs-grid-mini">
+                    <div class="spec-item">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span class="val">3.6 cm</span>
+                        <span class="lbl">Core Depth</span>
+                    </div>
+                    <div class="spec-item">
+                        <i class="fa-solid fa-ruler-horizontal"></i>
+                        <span class="val">48 mm</span>
+                        <span class="lbl">Inner Dia. (ID)</span>
+                    </div>
+                    <div class="spec-item">
+                        <i class="fa-solid fa-circle-notch"></i>
+                        <span class="val">84 mm</span>
+                        <span class="lbl">Outer Dia. (OD)</span>
+                    </div>
+                    <div class="spec-item">
+                        <i class="fa-solid fa-border-all"></i>
+                        <span class="val">24 Slots</span>
+                        <span class="lbl">Total Slots</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; color: var(--secondary-1);">
+                    <i class="fa-solid fa-bolt"></i> Electrical Target Specs
+                </h3>
+                <div class="specs-grid-mini">
+                    <div class="spec-item">
+                        <i class="fa-solid fa-plug"></i>
+                        <span class="val">220V/50Hz</span>
+                        <span class="lbl">Voltage / Freq</span>
+                    </div>
+                    <div class="spec-item">
+                        <i class="fa-solid fa-gauge-high"></i>
+                        <span class="val">2850 RPM</span>
+                        <span class="lbl">Sync Speed (2P)</span>
+                    </div>
+                    <div class="spec-item">
+                        <i class="fa-solid fa-circle-nodes"></i>
+                        <span class="val">4 µF</span>
+                        <span class="lbl">Capacitor</span>
+                    </div>
+                    <div class="spec-item">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span class="val">Class E</span>
+                        <span class="lbl">Insulation</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; color: var(--accent);">
+                    <i class="fa-solid fa-circle-info"></i> Protections & Ratings
+                </h3>
+                <div class="specs-grid-mini" style="grid-template-columns: 1fr;">
+                    <div class="spec-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px;">
+                        <span class="lbl">Full Load Amp (FLA)</span>
+                        <span class="val" style="color: var(--accent);">~1.1 A</span>
+                    </div>
+                    <div class="spec-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px;">
+                        <span class="lbl">Thermal Protection</span>
+                        <span class="val" style="color: var(--danger);">130°C Auto</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MAIN WORKSPACE -->
+        <section class="main-workspace">
+            
+            <!-- STATOR INTERACTIVE VISUALIZER -->
+            <div class="card visualizer-card">
+                <div id="diagramContainer" class="diagram-container">
+                    <svg id="statorSvg" class="stator-svg" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="46" class="stator-ring-out" />
+                        <circle cx="50" cy="50" r="32" class="stator-ring-in" />
+                        <!-- Generated dynamically by JS -->
+                        <g id="coilPathsGroup"></g>
+                        <g id="slotsGroup"></g>
+                    </svg>
+                </div>
+                <div class="diagram-controls">
+                    <h3 style="font-size: 14px; font-weight: 800; margin-bottom: 8px;">INTERACTIVE MOTOR MAP</h3>
+                    <div class="tab-box">
+                        <button id="tabAll" class="tab-btn active" onclick="setDiagramMode('all')">All</button>
+                        <button id="tabRun" class="tab-btn" onclick="setDiagramMode('run')">Running</button>
+                        <button id="tabStart" class="tab-btn starting-btn" onclick="setDiagramMode('start')">Starting</button>
+                    </div>
+                    <p class="tab-desc" id="diagramDesc">
+                        Showing complete motor configuration. Hover or click step coils, slots, or legend rows below to isolate visual tracks. Click empty background space to reset.
+                    </p>
+                    
+                    <!-- STEP LEGENDS (Interactive click-to-isolate) -->
+                    <div class="step-legend-container">
+                        <div class="legend-group" style="border-left: 3px solid var(--primary-1);">
+                            <div class="legend-group-title" style="color: var(--primary-1);">Running Winding (Blue Nodes)</div>
+                            <div class="legend-row" id="legend-run-0" onclick="event.stopPropagation(); toggleStepFocus('run', 0);">
+                                <div class="color-dot" style="background-color: var(--primary-1);"></div>
+                                <span>Step 1 (Slots 1-10 / 13-22)</span>
+                            </div>
+                            <div class="legend-row" id="legend-run-1" onclick="event.stopPropagation(); toggleStepFocus('run', 1);">
+                                <div class="color-dot" style="background-color: var(--primary-2);"></div>
+                                <span>Step 2 (Slots 2-11 / 14-23)</span>
+                            </div>
+                            <div class="legend-row" id="legend-run-2" onclick="event.stopPropagation(); toggleStepFocus('run', 2);">
+                                <div class="color-dot" style="background-color: var(--primary-3);"></div>
+                                <span>Step 3 (Slots 3-12 / 15-24)</span>
+                            </div>
+                        </div>
+                        <div class="legend-group" style="border-left: 3px solid var(--secondary-1);">
+                            <div class="legend-group-title" style="color: var(--secondary-1);">Starting Winding (Green Nodes)</div>
+                            <div class="legend-row" id="legend-start-0" onclick="event.stopPropagation(); toggleStepFocus('start', 0);">
+                                <div class="color-dot" style="background-color: var(--secondary-1);"></div>
+                                <span>Step 1 (Slots 7-16 / 19-4)</span>
+                            </div>
+                            <div class="legend-row" id="legend-start-1" onclick="event.stopPropagation(); toggleStepFocus('start', 1);">
+                                <div class="color-dot" style="background-color: var(--secondary-2);"></div>
+                                <span>Step 2 (Slots 8-17 / 20-5)</span>
+                            </div>
+                            <div class="legend-row" id="legend-start-2" onclick="event.stopPropagation(); toggleStepFocus('start', 2);">
+                                <div class="color-dot" style="background-color: var(--secondary-3);"></div>
+                                <span>Step 3 (Slots 9-18 / 21-6)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WINDING DATA SHEETS -->
+            <div class="winding-tables-container">
+                
+                <!-- RUNNING WINDING CARD -->
+                <div class="card winding-block">
+                    <div class="block-header">
+                        <div class="block-title running-title">
+                            <i class="fa-solid fa-circle-play"></i> Running Winding
+                        </div>
+                        <span class="wire-pill">Ø 0.50 mm AL</span>
+                    </div>
+                    <div class="meta-strip">
+                        <div class="meta-cell"><span class="lbl">Total</span><span class="val">654 T</span></div>
+                        <div class="meta-cell"><span class="lbl">Pole</span><span class="val">327 T</span></div>
+                        <div class="meta-cell"><span class="lbl">Slot</span><span class="val">109 T</span></div>
+                        <div class="meta-cell"><span class="lbl">Resistance</span><span class="val" style="color: var(--primary-1);">~42 Ω</span></div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Pole Group</th>
+                                <th>Coil Pitch (Chain 1-10)</th>
+                                <th style="text-align: right;">Turns/Slot</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="table-row-interactive" onmouseover="highlightCoils('run', 1)" onmouseout="clearHighlights()">
+                                <td>Pole 1</td>
+                                <td>[<span class="slot-highlight">1-10</span>] [<span class="slot-highlight">2-11</span>] [<span class="slot-highlight">3-12</span>]</td>
+                                <td style="text-align: right; color: var(--primary-1); font-weight: 700;">109 T</td>
+                            </tr>
+                            <tr class="table-row-interactive" onmouseover="highlightCoils('run', 2)" onmouseout="clearHighlights()">
+                                <td>Pole 2</td>
+                                <td>[<span class="slot-highlight">13-22</span>] [<span class="slot-highlight">14-23</span>] [<span class="slot-highlight">15-24</span>]</td>
+                                <td style="text-align: right; color: var(--primary-1); font-weight: 700;">109 T</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- STARTING WINDING CARD -->
+                <div class="card winding-block starting-block">
+                    <div class="block-header">
+                        <div class="block-title starting-title">
+                            <i class="fa-solid fa-bolt"></i> Starting Winding
+                        </div>
+                        <span class="wire-pill" style="background-color:rgba(16,185,129,0.1); border-color:rgba(16,185,129,0.2); color:var(--secondary-1);">Ø 0.40 mm AL</span>
+                    </div>
+                    <div class="meta-strip">
+                        <div class="meta-cell"><span class="lbl">Total</span><span class="val">888 T</span></div>
+                        <div class="meta-cell"><span class="lbl">Pole</span><span class="val">444 T</span></div>
+                        <div class="meta-cell"><span class="lbl">Slot</span><span class="val">148 T</span></div>
+                        <div class="meta-cell"><span class="lbl">Resistance</span><span class="val" style="color: var(--secondary-1);">~62 Ω</span></div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Pole Group</th>
+                                <th>Coil Pitch (Shifted 1-10)</th>
+                                <th style="text-align: right;">Turns/Slot</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="table-row-interactive" onmouseover="highlightCoils('start', 1)" onmouseout="clearHighlights()">
+                                <td>Pole 1</td>
+                                <td>[<span class="slot-highlight">7-16</span>] [<span class="slot-highlight">8-17</span>] [<span class="slot-highlight">9-18</span>]</td>
+                                <td style="text-align: right; color: var(--secondary-1); font-weight: 700;">148 T</td>
+                            </tr>
+                            <tr class="table-row-interactive" onmouseover="highlightCoils('start', 2)" onmouseout="clearHighlights()">
+                                <td>Pole 2</td>
+                                <td>[<span class="slot-highlight">19-4</span>] [<span class="slot-highlight">20-5</span>] [<span class="slot-highlight">21-6</span>]</td>
+                                <td style="text-align: right; color: var(--secondary-1); font-weight: 700;">148 T</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- CONNECTIONS SCHEMATIC -->
+            <div class="card connection-card-full">
+                <h3 style="font-size: 14px; font-weight: 800; color: var(--accent);"><i class="fa-solid fa-diagram-project"></i> Internal Connections & Terminal Wiring</h3>
+                <div class="schematic-diagram">
+                    <div class="wire-node">
+                        <div class="wire-color-indicator color-black"></div>
+                        <span class="node-lbl">Common</span>
+                        <span class="node-sub">R1 + S1 (Black)</span>
+                        <span style="font-size:9px; color:var(--accent);">Line Neutral (N)</span>
+                    </div>
+                    <div class="wire-connector-line"></div>
+                    <div class="wire-node">
+                        <div class="wire-color-indicator color-red"></div>
+                        <span class="node-lbl">Running Lead</span>
+                        <span class="node-sub">R2 (Red)</span>
+                        <span style="font-size:9px; color:var(--accent);">Line Fasa (L) + Cap</span>
+                    </div>
+                    <div class="wire-connector-line"></div>
+                    <div class="wire-node">
+                        <div class="wire-color-indicator color-yellow"></div>
+                        <span class="node-lbl">Starting Lead</span>
+                        <span class="node-sub">S2 (Yellow)</span>
+                        <span style="font-size:9px; color:var(--accent);">Capacitor Only</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TECHNICAL TOOLBOX (ESTIMATOR) -->
+            <div class="card toolbox-card no-print">
+                <h3 style="font-size: 14px; font-weight: 800; color: var(--accent);"><i class="fa-solid fa-calculator"></i> Workshop Resistance & Weight Calculator</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Alter the winding variables below to dynamically estimate electrical parameters.</p>
+                
+                <div class="toolbox-grid">
+                    <div class="tool-input-group">
+                        <label>Core Depth (cm)</label>
+                        <input type="number" id="calcDepth" value="3.6" step="0.1" oninput="calculateEstimates()">
+                    </div>
+                    <div class="tool-input-group">
+                        <label>Wire Diameter (mm)</label>
+                        <select id="calcWire" onchange="calculateEstimates()">
+                            <option value="0.50" selected>0.50 mm (Running Std)</option>
+                            <option value="0.40">0.40 mm (Starting Std)</option>
+                            <option value="0.45">0.45 mm (Custom)</option>
+                            <option value="0.55">0.55 mm (Thick Custom)</option>
+                        </select>
+                    </div>
+                    <div class="tool-input-group">
+                        <label>Total Turns</label>
+                        <input type="number" id="calcTurns" value="654" step="10" oninput="onCalculatorInput()">
+                    </div>
+                </div>
+
+                <div class="tool-results" style="margin-top: 14px;">
+                    <div class="result-item">
+                        <span class="result-lbl">Estimated Wire Weight</span>
+                        <span class="result-val" id="resMass">~224 grams</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-lbl">Predicted Resistance</span>
+                        <span class="result-val" id="resVal">~42.3 Ω</span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <footer>
+        <p>RE-WINDING TECHNICAL DATABASE • HIGH-PRECISION RE-WINDING SCHEMATICS</p>
+        <p style="margin-top: 4px; color: var(--text-muted);">Standardized Chain-Winding Single-Mold Profile. Verified safe compatibility.</p>
+    </footer>
+
+    <!-- INTERACTIVE MOTOR SIMULATOR SCRIPTS -->
+    <script>
+        const SLOTS_COUNT = 24;
+        const radius = 38;
+        const centerX = 50;
+        const centerY = 50;
+        let rotationAngle = 0;
+        let rotationInterval = null;
+        let activeFocusedStep = null; // Stores currently locked step focus: { type: 'run'|'start', step: 0|1|2 }
+
+        // Circular coordinates logic
+        function getCoordinates(slotIndex) {
+            const angleDeg = (slotIndex - 1) * (360 / SLOTS_COUNT) - 90;
+            const angleRad = (angleDeg * Math.PI) / 180;
+            const x = centerX + radius * Math.cos(angleRad);
+            const y = centerY + radius * Math.sin(angleRad);
+            return { x, y, angleRad };
+        }
+
+        window.onload = function() {
+            generateStatorVisuals();
+            calculateEstimates();
+
+            // Reset focus lock on SVG background click
+            document.getElementById('statorSvg').addEventListener('click', function() {
+                clearStepFocus();
+            });
+        };
+
+        function generateStatorVisuals() {
+            const slotsGroup = document.getElementById('slotsGroup');
+            const pathsGroup = document.getElementById('coilPathsGroup');
+            slotsGroup.innerHTML = '';
+            pathsGroup.innerHTML = '';
+
+            const runningPoles = [
+                { start: 1, end: 10 }, { start: 2, end: 11 }, { start: 3, end: 12 },
+                { start: 13, end: 22 }, { start: 14, end: 23 }, { start: 15, end: 24 }
+            ];
+
+            const startingPoles = [
+                { start: 7, end: 16 }, { start: 8, end: 17 }, { start: 9, end: 18 },
+                { start: 19, end: 4 }, { start: 20, end: 5 }, { start: 21, end: 6 }
+            ];
+
+            // Render Running Paths with Step classes (rc-step-0/1/2) and Click Handlers
+            runningPoles.forEach((pair, idx) => {
+                const stepIdx = idx % 3; // 0, 1, or 2
+                const p1 = getCoordinates(pair.start);
+                const p2 = getCoordinates(pair.end);
+                const d = `M ${p1.x.toFixed(2)},${p1.y.toFixed(2)} A 36,36 0 0,1 ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
+                const pathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                pathElement.setAttribute('d', d);
+                pathElement.setAttribute('class', `coil-arc running-coil rc-step-${stepIdx} rc-group-${idx < 3 ? 1 : 2}`);
+                
+                // Clicking on coil path focuses its step
+                pathElement.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleStepFocus('run', stepIdx);
+                });
+
+                pathsGroup.appendChild(pathElement);
+            });
+
+            // Render Starting Paths with Step classes (sc-step-0/1/2) and Click Handlers
+            startingPoles.forEach((pair, idx) => {
+                const stepIdx = idx % 3; // 0, 1, or 2
+                const p1 = getCoordinates(pair.start);
+                const p2 = getCoordinates(pair.end);
+                const d = `M ${p1.x.toFixed(2)},${p1.y.toFixed(2)} A 36,36 0 0,1 ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
+                const pathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                pathElement.setAttribute('d', d);
+                pathElement.setAttribute('class', `coil-arc starting-coil sc-step-${stepIdx} sc-group-${idx < 3 ? 1 : 2}`);
+                
+                // Clicking on coil path focuses its step
+                pathElement.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleStepFocus('start', stepIdx);
+                });
+
+                pathsGroup.appendChild(pathElement);
+            });
+
+            // Render 24 Slots with Click Handlers
+            for (let i = 1; i <= SLOTS_COUNT; i++) {
+                const { x, y } = getCoordinates(i);
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', x.toFixed(2));
+                circle.setAttribute('cy', y.toFixed(2));
+                circle.setAttribute('id', `slot-dot-${i}`);
+
+                let cls = 'slot-node';
+                let stepIdx = null;
+                let type = null;
+
+                // Set proper visual categories: running-slot vs starting-slot to match CSS selectors
+                if ([1,10,13,22].includes(i)) { stepIdx = 0; type = 'run'; cls += ' running-slot'; }
+                else if ([2,11,14,23].includes(i)) { stepIdx = 1; type = 'run'; cls += ' running-slot'; }
+                else if ([3,12,15,24].includes(i)) { stepIdx = 2; type = 'run'; cls += ' running-slot'; }
+                else if ([7,16,19,4].includes(i)) { stepIdx = 0; type = 'start'; cls += ' starting-slot'; }
+                else if ([8,17,20,5].includes(i)) { stepIdx = 1; type = 'start'; cls += ' starting-slot'; }
+                else if ([9,18,21,6].includes(i)) { stepIdx = 2; type = 'start'; cls += ' starting-slot'; }
+
+                circle.setAttribute('class', cls);
+                circle.setAttribute('r', '2.2');
+                
+                if (stepIdx !== null) {
+                    // Click on an active slot dot focuses its step
+                    circle.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleStepFocus(type, stepIdx);
+                    });
+                }
+
+                const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+                title.textContent = `Stator Slot #${i}`;
+                circle.appendChild(title);
+
+                slotsGroup.appendChild(circle);
+            }
+
+            setDiagramMode('all');
+        }
+
+        // Control Diagram Tab Modes
+        function setDiagramMode(view) {
+            // Cancel current focus lock when switching tabs for UX consistency
+            clearStepFocus();
+
+            const container = document.getElementById('diagramContainer');
+            const buttons = document.querySelectorAll('.tab-btn');
+            const desc = document.getElementById('diagramDesc');
+
+            buttons.forEach(btn => btn.classList.remove('active', 'starting-active'));
+            container.className = 'diagram-container';
+
+            if (view === 'all') {
+                container.classList.add('all-view');
+                document.getElementById('tabAll').classList.add('active');
+                desc.innerHTML = 'Showing <strong>All Coils Active</strong>. Notice the distinctive colors representing individual step coils (Step 1, 2, and 3) as indexed in the legend below.';
+            } else if (view === 'run') {
+                container.classList.add('run-view');
+                document.getElementById('tabRun').classList.add('active');
+                desc.innerHTML = 'Showing <strong>Running Coils Only</strong> (Active slots: 1-3, 10-12, 13-15, 22-24). Starting winding is currently deactivated (faded).';
+            } else if (view === 'start') {
+                container.classList.add('start-view');
+                document.getElementById('tabStart').classList.add('active', 'starting-active');
+                desc.innerHTML = 'Showing <strong>Starting Coils Only</strong> (Active slots: 4-6, 7-9, 16-18, 19-21). Running winding is currently deactivated (faded).';
+            }
+        }
+
+        // Highlights specific coil tracks temporarily on table row hover
+        function highlightCoils(type, poleGroup) {
+            // Guard: Do not trigger hover highlights if a step focus lock is active
+            if (activeFocusedStep) return;
+
+            clearHighlights();
+            
+            // Activate focused mode (dim non-target elements)
+            document.getElementById('statorSvg').classList.add('focused-mode');
+
+            if (type === 'run') {
+                const stepPairs = poleGroup === 1 
+                    ? [{ s: 1, e: 10, step: 0 }, { s: 2, e: 11, step: 1 }, { s: 3, e: 12, step: 2 }]
+                    : [{ s: 13, e: 22, step: 0 }, { s: 14, e: 23, step: 1 }, { s: 15, e: 24, step: 2 }];
+                
+                stepPairs.forEach(pair => {
+                    const dotStart = document.getElementById(`slot-dot-${pair.s}`);
+                    const dotEnd = document.getElementById(`slot-dot-${pair.e}`);
+                    if (dotStart) {
+                        dotStart.classList.add('temp-highlight-slot', `rc-step-${pair.step}`);
+                    }
+                    if (dotEnd) {
+                        dotEnd.classList.add('temp-highlight-slot', `rc-step-${pair.step}`);
+                    }
+                });
+
+                const targetArcs = document.querySelectorAll(`.rc-group-${poleGroup}`);
+                targetArcs.forEach(arc => arc.classList.add('temp-highlight-arc'));
+                
+            } else if (type === 'start') {
+                const stepPairs = poleGroup === 1
+                    ? [{ s: 7, e: 16, step: 0 }, { s: 8, e: 17, step: 1 }, { s: 9, e: 18, step: 2 }]
+                    : [{ s: 19, e: 4, step: 0 }, { s: 20, e: 5, step: 1 }, { s: 21, e: 6, step: 2 }];
+                
+                stepPairs.forEach(pair => {
+                    const dotStart = document.getElementById(`slot-dot-${pair.s}`);
+                    const dotEnd = document.getElementById(`slot-dot-${pair.e}`);
+                    if (dotStart) {
+                        dotStart.classList.add('temp-highlight-slot', `sc-step-${pair.step}`);
+                    }
+                    if (dotEnd) {
+                        dotEnd.classList.add('temp-highlight-slot', `sc-step-${pair.step}`);
+                    }
+                });
+
+                const targetArcs = document.querySelectorAll(`.sc-group-${poleGroup}`);
+                targetArcs.forEach(arc => arc.classList.add('temp-highlight-arc'));
+            }
+        }
+
+        // Toggles a persistent focus lock on a specific step
+        function toggleStepFocus(type, stepIdx) {
+            // If the same step is clicked, toggle it off (clear focus)
+            if (activeFocusedStep && activeFocusedStep.type === type && activeFocusedStep.step === stepIdx) {
+                clearStepFocus();
+                return;
+            }
+
+            clearHighlights();
+            activeFocusedStep = { type, step: stepIdx };
+
+            const statorSvg = document.getElementById('statorSvg');
+            statorSvg.classList.add('focused-mode');
+
+            // Apply persistent highlighting classes based on selected winding step
+            if (type === 'run') {
+                // Focus on step 1 (Slots 1,10,13,22), step 2 (Slots 2,11,14,23), step 3 (Slots 3,12,15,24)
+                const targetPairs = [
+                    [{ s: 1, e: 10 }, { s: 13, e: 22 }],
+                    [{ s: 2, e: 11 }, { s: 14, e: 23 }],
+                    [{ s: 3, e: 12 }, { s: 15, e: 24 }]
+                ][stepIdx];
+
+                targetPairs.forEach(pair => {
+                    const sDot = document.getElementById(`slot-dot-${pair.s}`);
+                    const eDot = document.getElementById(`slot-dot-${pair.e}`);
+                    if (sDot) sDot.classList.add('temp-highlight-slot', `rc-step-${stepIdx}`);
+                    if (eDot) eDot.classList.add('temp-highlight-slot', `rc-step-${stepIdx}`);
+                });
+
+                // Light up the specific paths belonging to this step
+                const targetPaths = document.querySelectorAll(`.running-coil.rc-step-${stepIdx}`);
+                targetPaths.forEach(path => path.classList.add('temp-highlight-arc'));
+
+            } else if (type === 'start') {
+                // Focus on starting step 1 (Slots 7,16,19,4), step 2 (Slots 8,17,20,5), step 3 (Slots 9,18,21,6)
+                const targetPairs = [
+                    [{ s: 7, e: 16 }, { s: 19, e: 4 }],
+                    [{ s: 8, e: 17 }, { s: 20, e: 5 }],
+                    [{ s: 9, e: 18 }, { s: 21, e: 6 }]
+                ][stepIdx];
+
+                targetPairs.forEach(pair => {
+                    const sDot = document.getElementById(`slot-dot-${pair.s}`);
+                    const eDot = document.getElementById(`slot-dot-${pair.e}`);
+                    if (sDot) sDot.classList.add('temp-highlight-slot', `sc-step-${stepIdx}`);
+                    if (eDot) eDot.classList.add('temp-highlight-slot', `sc-step-${stepIdx}`);
+                });
+
+                const targetPaths = document.querySelectorAll(`.starting-coil.sc-step-${stepIdx}`);
+                targetPaths.forEach(path => path.classList.add('temp-highlight-arc'));
+            }
+
+            // Sync visual active class on corresponding legend rows
+            document.querySelectorAll('.legend-row').forEach(row => {
+                row.classList.remove('active-focus', 'run-focus-0', 'run-focus-1', 'run-focus-2', 'start-focus-0', 'start-focus-1', 'start-focus-2');
+            });
+            const legendId = `legend-${type}-${stepIdx}`;
+            const activeLegendRow = document.getElementById(legendId);
+            if (activeLegendRow) {
+                activeLegendRow.classList.add('active-focus', `${type}-focus-${stepIdx}`);
+            }
+        }
+
+        // Resets the persistent step-focused mode entirely
+        function clearStepFocus() {
+            activeFocusedStep = null;
+            clearHighlights();
+            document.querySelectorAll('.legend-row').forEach(row => {
+                row.classList.remove('active-focus', 'run-focus-0', 'run-focus-1', 'run-focus-2', 'start-focus-0', 'start-focus-1', 'start-focus-2');
+            });
+        }
+
+        // Reset hover highlights
+        function clearHighlights() {
+            // Guard: If persistent lock is on, do not wipe classes during hover-out
+            if (activeFocusedStep) return;
+
+            document.getElementById('statorSvg').classList.remove('focused-mode');
+            document.querySelectorAll('.slot-node').forEach(node => {
+                node.classList.remove('temp-highlight-slot', 'rc-step-0', 'rc-step-1', 'rc-step-2', 'sc-step-0', 'sc-step-1', 'sc-step-2');
+            });
+            document.querySelectorAll('.coil-arc').forEach(arc => arc.classList.remove('temp-highlight-arc'));
+        }
+
+        // Stator rotation animation
+        function toggleStatorSpin() {
+            const stator = document.getElementById('statorSvg');
+            if (rotationInterval) {
+                clearInterval(rotationInterval);
+                rotationInterval = null;
+            } else {
+                rotationInterval = setInterval(() => {
+                    rotationAngle = (rotationAngle + 1) % 360;
+                    stator.style.transform = `rotate(${rotationAngle}deg)`;
+                }, 30);
+            }
+        }
+
+        // Estimator dynamic logic
+        function calculateEstimates() {
+            const depth = parseFloat(document.getElementById('calcDepth').value) || 3.6;
+            const wireSize = parseFloat(document.getElementById('calcWire').value) || 0.50;
+            const turns = parseInt(document.getElementById('calcTurns').value) || 654;
+
+            const coilOverhang = 3.5; 
+            const turnLengthM = (2 * (depth + coilOverhang)) / 100; 
+            const totalLengthM = turns * turnLengthM;
+
+            const radiusM = (wireSize / 2) / 1000;
+            const areaM2 = Math.PI * Math.pow(radiusM, 2);
+
+            const resistivity = 2.82e-8; // Aluminum resistivity
+            const predictedResistance = (resistivity * totalLengthM) / areaM2;
+
+            const volumeCm3 = (areaM2 * 10000) * (totalLengthM * 100);
+            const massGrams = volumeCm3 * 2.7; // Aluminum density
+
+            document.getElementById('resVal').innerText = `~${predictedResistance.toFixed(1)} Ω`;
+            document.getElementById('resMass').innerText = `~${Math.round(massGrams)} grams`;
+        }
+
+        function onCalculatorInput() {
+            calculateEstimates();
+        }
+    </script>
+</body>
+</html>
